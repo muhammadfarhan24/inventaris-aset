@@ -29,16 +29,16 @@
                      </a>
                      <ul v-show="ruanganMenuOpen" class="submenu">
                         <li><a href="#">Daftar Ruangan</a></li>
-                        <li><a href="#">Gudang Imam A</a></li>
-                        <li><a href="#">Gudang Imam B</a></li>
-                        <li><a href="#">Gudang Tangga A</a></li>
-                        <li><a href="#">Gudang Tangga B</a></li>
-                        <li><a href="#">Sekretariat</a></li>
-                        <li><a href="#">Ruangan A Lantai 2</a></li>
+                        <li><router-link to="/dashboard/gudang-imam-a">Gudang Imam A</router-link></li>
+                        <li><router-link to="/dashboard/gudang-imam-b">Gudang Imam B</router-link></li>
+                        <li><router-link to="/dashboard/gudang-tangga-a">Gudang Tangga A</router-link></li>
+                        <li><router-link to="/dashboard/gudang-tangga-b">Gudang Tangga B</router-link></li>
+                        <li><router-link to="/dashboard/sekretariat">Sekretariat</router-link></li>
+                        <li><router-link to="/dashboard/gudang-lantai-2">Ruangan Lantai 2</router-link></li>
                      </ul>
                 </li>
 
-                <li><a href="#">Users</a></li>
+                <li><router-link to="/dashboard/user">User</router-link></li>
                 <button @click="logout" class="logout-button">Logout</button>
             </ul>
          </aside>
@@ -88,14 +88,21 @@ export default {
 </script>
 
 <style>
+.dashboard {
+    display: flex;
+    min-height: 100vh;
+    align-items: stretch;
+}
 .sidebar {
     width: 220px;
     background-color: #2c3e50;
     color: white;
     padding: 20px;
-    height: 100vh;
     overflow-y: auto;
     transition: transform 0.3s ease;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 1000;
 }
 
 .sidebar::-webkit-scrollbar {
@@ -157,5 +164,41 @@ export default {
 
 .logout-button:hover {
     background-color: #c0392b;
+}
+
+.main-content {
+    flex: 1;
+    padding: 20px;
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+
+.toogle-btn {
+    display: none;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+}
+
+@media (max-width: 768px) {
+    .sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 100vh;
+        transform: translateX(-100%);
+        box-shadow: 2px 0 5px rgba(0, 0, 0, 0.3);
+        z-index: 1100;
+    }
+    .sidebar.open {
+        transform: translateX(0);
+    }
+}
+
+@media (max-width: 768px) {
+    .toogle-btn {
+        display: inline-block;
+    }
 }
 </style>

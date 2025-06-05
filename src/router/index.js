@@ -9,6 +9,13 @@ import MerkBarang from '@/views/MerkBarang.vue'
 import Peminjaman from '@/views/Peminjaman.vue'
 import StatusBarang from '@/views/StatusBarang.vue'
 import ServiceBarang from '@/views/ServiceBarang.vue'
+import GudangImamA from '@/views/GudangImamA.vue'
+import GudangImamB from '@/views/GudangImamB.vue'
+import GudangTanggaA from '@/views/GudangTanggaA.vue'
+import GudangTanggaB from '@/views/GudangTanggaB.vue'
+import Sekretariat from '@/views/sekretariat.vue'
+import Lantai2 from '@/views/Lantai2.vue'
+import User from '@/views/User.vue'
 
 const routes = [
   {
@@ -59,6 +66,41 @@ const routes = [
         path: 'service-barang',
         name: 'Service-Barang',
         component: ServiceBarang
+      },
+      {
+        path: 'gudang-imam-a',
+        name: 'Gudang-Imam-A',
+        component: GudangImamA
+      },
+      {
+        path: 'gudang-imam-b',
+        name: 'Gudang-Imam-B',
+        component: GudangImamB
+      },
+      {
+        path: 'gudang-tangga-a',
+        name: 'Gudang-Tangga-A',
+        component: GudangTanggaA
+      },
+      {
+        path: 'gudang-tangga-b',
+        name: 'Gudang-Tangga-B',
+        component: GudangTanggaB
+      },
+      {
+        path: 'sekretariat',
+        name: 'Sekretariat',
+        component: Sekretariat
+      },
+      {
+        path: 'gudang-lantai-2',
+        name: 'Gudang-Lantai-2',
+        component: Lantai2
+      },
+      {
+        path: 'user',
+        name: 'User',
+        component: User
       }
     ]
   }

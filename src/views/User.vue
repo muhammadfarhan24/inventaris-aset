@@ -10,6 +10,38 @@
         <button class="btn-tambah" @click="tambahUser">+ Tambah User</button>
       </div>
 
+      <!-- Form Tambah User -->
+      <div v-if="showFormTambah" class="form-tambah">
+        <input v-model="formUser.nama" placeholder="Nama" />
+        <input v-model="formUser.username" placeholder="Username" />
+        <input v-model="formUser.password" placeholder="Password" type="password" />
+        <select v-model="formUser.role">
+          <option disabled value="">Pilih Role</option>
+          <option value="admin">Admin</option>
+          <option value="ketua_masjid">Ketua Masjid</option>
+          <option value="ketua_yayasan">Ketua Yayasan</option>
+        </select>
+        <button @click="simpanUserBaru">Simpan</button>
+        <button @click="showFormTambah = false">Batal</button>
+      </div>
+
+      <!-- Form Edit User -->
+      <div v-if="showFormEdit" class="form-tambah">
+        <input v-model="editUserData.nama" placeholder="Nama" />
+        <input v-model="editUserData.username" placeholder="Username" />
+        <input v-model="editUserData.password" type="password" placeholder="Password baru (opsional)" />
+        <select v-model="editUserData.role">
+          <option disabled value="">Pilih Role</option>
+          <option value="admin">Admin</option>
+          <option value="ketua_masjid">Ketua Masjid</option>
+          <option value="ketua_yayasan">Ketua Yayasan</option>
+        </select>
+        <button @click="simpanEditUser">Simpan Perubahan</button>
+        <button @click="showFormEdit = false">Batal</button>
+      </div>
+
+
+      <!-- Tabel User -->
       <div class="table-container">
         <table class="user-table">
           <thead>
@@ -57,23 +89,32 @@
 </template>
 
 <script>
+import axios from 'axios';
+
 export default {
   name: 'UserPage',
   data() {
     return {
-      currentUser: {
-        id: 99,
-        nama: "Ketua Yayasan",
-        username: "yayasan01",
-        role: "ketua_yayasan",
-        status: "Aktif"
-      },
+      currentUser: JSON.parse(localStorage.getItem('user')) || {},
       searchQuery: '',
-      users: [
-        { id: 1, nama: "Admin", username: "admin1", role: "admin", status: "Aktif" },
-        { id: 2, nama: "Ketua Masjid", username: "masjid01", role: "ketua_masjid", status: "Aktif" },
-        { id: 3, nama: "Ketua Yayasan", username: "yayasan01", role: "ketua_yayasan", status: "Nonaktif" }
-      ]
+      users: [],
+      showFormTambah: false,
+      showFormEdit: false,
+      formUser: {
+        nama: '',
+        username: '',
+        password: '',
+        role: '',
+        status: 'Aktif'
+      },
+      editUserData: {
+        id: '',
+        nama: '',
+        username: '',
+        password: '',
+        role: '',
+        status: ''
+      }
     };
   },
   computed: {
@@ -90,15 +131,62 @@ export default {
     }
   },
   methods: {
+    async fetchUsers() {
+      try {
+        const res = await axios.get('http://localhost:3000/users');
+        this.users = res.data;
+      } catch (err) {
+        console.error('Gagal memuat user:', err);
+      }
+    },
+    async hapusUser(id) {
+      if (confirm("Yakin ingin menghapus user ini?")) {
+        try {
+          await axios.delete(`http://localhost:3000/users/${id}`);
+          this.fetchUsers();
+        } catch (err) {
+          alert("Gagal menghapus user");
+          console.error(err);
+        }
+      }
+    },
     tambahUser() {
-      alert("Navigasi ke form tambah user");
+      this.showFormTambah = true;
+      this.showFormEdit = false;
+      this.formUser = {
+        nama: '',
+        username: '',
+        password: '',
+        role: '',
+        status: 'Aktif'
+      };
+    },
+    async simpanUserBaru() {
+      try {
+        await axios.post('http://localhost:3000/users', this.formUser);
+        this.showFormTambah = false;
+        this.fetchUsers();
+      } catch (err) {
+        alert("Gagal menambah user");
+        console.error(err);
+      }
     },
     editUser(id) {
-      alert(`Edit user ID ${id}`);
+      const user = this.users.find(u => u.id === id);
+      if (user) {
+        this.editUserData = { ...user, password: '' };
+        this.showFormTambah = false;
+        this.showFormEdit = true;
+      }
     },
-    hapusUser(id) {
-      if (confirm("Yakin ingin menghapus user ini?")) {
-        this.users = this.users.filter(user => user.id !== id);
+    async simpanEditUser() {
+      try {
+        await axios.put(`http://localhost:3000/users/${this.editUserData.id}`, this.editUserData);
+        this.showFormEdit = false;
+        this.fetchUsers();
+      } catch (err) {
+        alert("Gagal update user");
+        console.error(err);
       }
     },
     editProfil() {
@@ -107,32 +195,29 @@ export default {
     resetPassword() {
       alert("Ubah password saya");
     }
+  },
+  mounted() {
+    this.fetchUsers();
   }
 };
 </script>
+
 
 <style scoped>
 .user-page {
   padding: 20px;
 }
-
 .header-bar {
   display: flex;
-  flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 15px;
-  gap: 10px;
 }
-
 .search-input {
-  flex: 1;
-  min-width: 200px;
   padding: 8px;
   border-radius: 4px;
   border: 1px solid #ccc;
 }
-
 .btn-tambah {
   background-color: #27ae60;
   color: white;
@@ -142,39 +227,26 @@ export default {
   font-weight: bold;
   cursor: pointer;
 }
-
-.btn-tambah:hover {
-  background-color: #219150;
-}
-
 .table-container {
-  width: 100%;
   overflow-x: auto;
 }
-
 .user-table {
   width: 100%;
   border-collapse: collapse;
   min-width: 800px;
 }
-
 .user-table th,
 .user-table td {
-  padding: 10px 12px;
+  padding: 10px;
   border: 1px solid #ddd;
-  text-align: left;
-  vertical-align: middle;
 }
-
 .user-table th {
   background-color: #2c3e50;
   color: white;
 }
-
 .text-center {
   text-align: center;
 }
-
 .btn-edit {
   background-color: #3498db;
   color: white;
@@ -184,7 +256,6 @@ export default {
   margin-right: 5px;
   cursor: pointer;
 }
-
 .btn-delete {
   background-color: #e74c3c;
   color: white;
@@ -193,7 +264,6 @@ export default {
   border-radius: 4px;
   cursor: pointer;
 }
-
 .btn-reset {
   background-color: #f39c12;
   color: white;
@@ -203,12 +273,22 @@ export default {
   margin-top: 10px;
   cursor: pointer;
 }
-
-.user-profile .profile-box {
-  max-width: 500px;
-  background-color: #f9f9f9;
+.profile-box {
+  background: #f9f9f9;
   padding: 20px;
   border-radius: 8px;
+  max-width: 500px;
+}
+.form-tambah {
+  margin: 15px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.form-tambah input,
+.form-tambah select {
+  padding: 8px;
   border: 1px solid #ccc;
+  border-radius: 4px;
 }
 </style>

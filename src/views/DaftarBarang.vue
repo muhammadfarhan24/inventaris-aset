@@ -5,24 +5,41 @@
     </header>
 
     <section class="content">
-      <h2>Ringkasan Status Barang</h2>
+      <!-- Form Tambah Barang -->
+      <h2>Tambah Barang</h2>
+      <form @submit.prevent="tambahBarang" class="form-barang">
+        <input v-model="form.nama" placeholder="Nama Barang" required />
+        <input v-model="form.kategori_id" placeholder="Kategori ID" required />
+        <input v-model="form.merk_id" placeholder="Merk ID" required />
+        <select v-model="form.status" required>
+          <option disabled value="">Pilih Status</option>
+          <option value="Tersedia">Tersedia</option>
+          <option value="Rusak">Rusak</option>
+          <option value="Dipinjam">Dipinjam</option>
+        </select>
+        <input v-model="form.ruangan_id" placeholder="Ruangan ID" required />
+        <input v-model="form.deskripsi" placeholder="Deskripsi" />
+        <button type="submit">Tambah</button>
+      </form>
 
+      <!-- Ringkasan Status -->
+      <h2>Ringkasan Status Barang</h2>
       <div class="cards">
         <div class="card available" @click="setStatus('Tersedia')">
           <h3>Barang Tersedia</h3>
-          <p>80</p>
+          <p>{{ jumlahStatus('Tersedia') }}</p>
         </div>
         <div class="card damaged" @click="setStatus('Rusak')">
           <h3>Barang Rusak</h3>
-          <p>25</p>
+          <p>{{ jumlahStatus('Rusak') }}</p>
         </div>
         <div class="card borrowed" @click="setStatus('Dipinjam')">
           <h3>Barang Dipinjam</h3>
-          <p>15</p>
+          <p>{{ jumlahStatus('Dipinjam') }}</p>
         </div>
       </div>
 
-      <!-- Tabel berdasarkan status yang diklik -->
+      <!-- Tabel berdasarkan status -->
       <div v-if="activeStatus" class="table-section">
         <button class="close-btn" @click="activeStatus = ''">Tutup</button>
         <h3>Daftar Barang {{ activeStatus }}</h3>
@@ -31,21 +48,24 @@
             <tr>
               <th>No</th>
               <th>Nama</th>
+              <th>Kategori</th>
               <th>Merk</th>
               <th>Status</th>
+              <th>Ruangan</th>
               <th>Deskripsi</th>
+              <th>Creted_at</th>
             </tr>
           </thead>
           <tbody>
-            <tr
-              v-for="(item, index) in filteredBarang"
-              :key="index"
-            >
+            <tr v-for="(item, index) in filteredBarang" :key="index">
               <td>{{ index + 1 }}</td>
               <td>{{ item.nama }}</td>
-              <td>{{ item.merk }}</td>
+              <td>{{ item.kategori_id }}</td>
+              <td>{{ item.merk_id }}</td>
               <td>{{ item.status }}</td>
+              <td>{{ item.ruangan_id }}</td>
               <td>{{ item.deskripsi }}</td>
+              <td>{{ item.created_at }}</td>
             </tr>
           </tbody>
         </table>
@@ -60,13 +80,15 @@ export default {
   data() {
     return {
       activeStatus: '',
-      barangList: [
-        { nama: 'Laptop', merk: 'Asus', status: 'Dipinjam', deskripsi: 'Digunakan presentasi' },
-        { nama: 'Proyektor', merk: 'Epson', status: 'Tersedia', deskripsi: 'Baru' },
-        { nama: 'Kursi Guru', merk: '-', status: 'Rusak', deskripsi: 'Kaki patah' },
-        { nama: 'Monitor', merk: 'LG', status: 'Tersedia', deskripsi: '-' },
-        { nama: 'Speaker', merk: 'Polytron', status: 'Rusak', deskripsi: 'Tidak berbunyi' }
-      ]
+      barangList: [],
+      form: {
+        nama: '',
+        kategori_id: '',
+        merk_id: '',
+        status: '',
+        ruangan_id: '',
+        deskripsi: ''
+      }
     };
   },
   computed: {
@@ -77,107 +99,122 @@ export default {
   methods: {
     setStatus(status) {
       this.activeStatus = status;
+    },
+    jumlahStatus(status) {
+      return this.barangList.filter(b => b.status === status).length;
+    },
+    async ambilDataBarang() {
+      try {
+        const res = await fetch('http://localhost:3000/barang');
+        const data = await res.json();
+        this.barangList = data;
+      } catch (err) {
+        console.error('Gagal ambil data barang:', err);
+      }
+    },
+    async tambahBarang() {
+      try {
+        const res = await fetch('http://localhost:3000/barang', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(this.form)
+        });
+        if (res.ok) {
+          this.form = {
+            nama: '',
+            kategori_id: '',
+            merk_id: '',
+            status: '',
+            ruangan_id: '',
+            deskripsi: ''
+          };
+          this.ambilDataBarang(); // refresh list
+        } else {
+          console.error('Gagal tambah barang');
+        }
+      } catch (err) {
+        console.error('Gagal koneksi ke server:', err);
+      }
     }
+  },
+  mounted() {
+    this.ambilDataBarang();
+    this.activeStatus = 'Tersedia';
   }
 };
 </script>
 
 <style scoped>
 .main-content {
-  flex: 1;
   background-color: #f4f4f4;
-  display: flex;
-  flex-direction: column;
+  padding: 20px;
 }
-
 .header {
   background-color: white;
   padding: 20px;
   border-bottom: 1px solid #ddd;
 }
-
-.content {
-  padding: 20px;
-}
-
 .cards {
   display: flex;
-  flex-wrap: wrap;
   gap: 20px;
   margin-top: 20px;
 }
-
 .card {
-  background-color: white;
+  flex: 1;
+  background: white;
   padding: 20px;
-  flex: 1 1 250px;
   border-radius: 8px;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-  text-align: center;
   cursor: pointer;
-  transition: background-color 0.2s;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
-
-.card:hover {
-  background-color: #ecf0f1;
-}
-
-.card h3 {
-  margin-bottom: 10px;
-  color: #2c3e50;
-}
-
-.card p {
-  font-size: 24px;
-  font-weight: bold;
-}
-
-.card.available p {
-  color: #27ae60;
-}
-.card.damaged p {
-  color: #e74c3c;
-}
-.card.borrowed p {
-  color: #f39c12;
-}
-
+.card.available p { color: #27ae60; }
+.card.damaged p { color: #e74c3c; }
+.card.borrowed p { color: #f39c12; }
 .table-section {
   margin-top: 30px;
 }
-
-.close-btn {
-  background-color: #e74c3c;
-  color: white;
-  border: none;
-  padding: 6px 12px;
-  border-radius: 4px;
-  margin-bottom: 10px;
-  cursor: pointer;
-}
-
 .summary-table {
   width: 100%;
   border-collapse: collapse;
   background-color: white;
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  margin-top: 10px;
 }
-
-.summary-table th,
-.summary-table td {
-  padding: 12px 16px;
-  text-align: left;
+.summary-table th, .summary-table td {
+  padding: 10px;
   border-bottom: 1px solid #ddd;
 }
-
 .summary-table thead {
   background-color: #2c3e50;
   color: white;
 }
-
-.summary-table tbody tr:hover {
-  background-color: #f1f1f1;
+.close-btn {
+  background-color: #e74c3c;
+  color: white;
+  padding: 6px 12px;
+  border: none;
+  margin-bottom: 10px;
+  border-radius: 4px;
+}
+.form-barang {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 30px;
+}
+.form-barang input, .form-barang select {
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+.form-barang button {
+  width: fit-content;
+  padding: 8px 16px;
+  background-color: #3498db;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
 }
 </style>

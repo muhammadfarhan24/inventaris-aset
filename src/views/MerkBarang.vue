@@ -6,7 +6,7 @@
     </div>
 
     <!-- Kolom Search -->
-    <div class="seacrh-bar">
+    <div class="search-bar">
         <input type="text" v-model="searchQuery" placeholder="Cari Merk..." />
     </div> 
 
@@ -15,15 +15,15 @@
         <tr>
           <th>No</th>
           <th>Kode Merk</th>
-          <th>Lokasi</th>
+          <th>Nama Merk</th>
           <th>Aksi</th>
         </tr>
       </thead>
       <tbody>
-        <tr v-for="(merk, index) in merkList" :key="merk.id">
+        <tr v-for="(merk, index) in filteredMerkList" :key="merk.id">
           <td>{{ index + 1 }}</td>
-          <td>{{ merk.kode }}</td>
-          <td>{{ merk.nama }}</td>
+          <td>{{ merk.kode_merk }}</td>
+          <td>{{ merk.nama_merk }}</td>
           <td>
             <button @click="editMerk(merk.id)" class="btn-edit">Edit</button>
             <button @click="deleteMerk(merk.id)" class="btn-delete">Delete</button>
@@ -31,7 +31,7 @@
         </tr>
 
         <tr v-if="filteredMerkList.length === 0">
-            <td colspan="4" style="text-align: center;">Data Tidak Ditemukan</td>
+          <td colspan="4" style="text-align: center;">Data Tidak Ditemukan</td>
         </tr>
       </tbody>
     </table>
@@ -43,34 +43,66 @@ export default {
   name: 'MerkBarang',
   data() {
     return {
-      searchQuery: '',  
-      merkList: [
-        { id: 1, kode: 'MRK001', nama: 'TOA' },
-        { id: 2, kode: 'MRK002', nama: 'COBA' },
-        { id: 3, kode: 'MRK003', nama: 'COBA' }
-      ]
-    }
+      searchQuery: '',
+      merkList: []
+    };
   },
   computed: {
     filteredMerkList() {
-        const query = this.searchQuery.toLowerCase();
-        return this.merkList.filter(kat =>
-            kat.nama.toLowerCase().includes(query) || kat.kode.toLowerCase().includes(query)
-        );
+      const query = this.searchQuery.toLowerCase();
+      return this.merkList.filter(m =>
+        (m.nama_merk || '').toLowerCase().includes(query) ||
+        (m.kode_merk || '').toLowerCase().includes(query)
+      );
     }
   },
   methods: {
-    editMerk(id) {
-      alert(`Edit merk dengan ID: ${id}`);
-      // Navigasi ke form edit atau tampilkan modal edit
+    fetchMerk() {
+      fetch('http://localhost:3000/merk')
+        .then(res => res.json())
+        .then(data => {
+          this.merkList = data;
+        })
+        .catch(err => {
+          console.error('Gagal ambil data merk:', err);
+        });
+    },
+    tambahMerk() {
+      const kode = prompt('Masukkan kode merk:');
+      const nama = prompt('Masukkan nama merk:');
+      if (!kode || !nama) return;
+
+      fetch('http://localhost:3000/merk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ kode_merk: kode, nama_merk: nama })
+      })
+        .then(res => res.json())
+        .then(() => this.fetchMerk())
+        .catch(err => {
+          console.error('Gagal tambah merk:', err);
+        });
     },
     deleteMerk(id) {
-      if (confirm('Yakin ingin menghapus lokasi ini?')) {
-        this.merkList = this.merkList.filter(kat => kat.id !== id);
-      }
+      if (!confirm('Yakin ingin menghapus merk ini?')) return;
+
+      fetch(`http://localhost:3000/merk/${id}`, {
+        method: 'DELETE'
+      })
+        .then(() => this.fetchMerk())
+        .catch(err => {
+          console.error('Gagal hapus merk:', err);
+        });
+    },
+    editMerk(id) {
+      alert(`Edit merk dengan ID: ${id}`);
+      // fitur edit bisa dikembangkan nanti
     }
+  },
+  mounted() {
+    this.fetchMerk();
   }
-}
+};
 </script>
 
 <style scoped>
@@ -86,36 +118,36 @@ export default {
 }
 
 .header-bar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
 }
 
 .btn-tambah {
-    background-color: #27ae60;
-    color: white;
-    border: none;
-    padding: 10px 16px;
-    border-radius: 4px;
-    cursor: pointer;
-    font-weight: bold;
+  background-color: #27ae60;
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
 }
 
 .btn-tambah:hover {
-    background-color: #219150;
+  background-color: #219150;
 }
 
 .search-bar {
-    margin-bottom: 20px;
+  margin-bottom: 20px;
 }
 
 .search-bar input {
-    width: 100%;
-    padding: 10px 12px;
-    font-size: 1rem;
-    border: 1px solid #ccc;
-    border-radius: 4px;
+  width: 100%;
+  padding: 10px 12px;
+  font-size: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
 }
 
 .merk-table {

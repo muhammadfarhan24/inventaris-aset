@@ -6,7 +6,7 @@
     </div>
 
     <!-- Kolom Search -->
-    <div class="seacrh-bar">
+    <div class="search-bar">
         <input type="text" v-model="searchQuery" placeholder="Cari Lokasi..." />
     </div> 
 

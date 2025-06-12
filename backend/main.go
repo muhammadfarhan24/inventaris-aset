@@ -2,6 +2,10 @@ package main
 
 import (
 	"be-inventaris/barang"
+	"be-inventaris/kategori"
+	"be-inventaris/merk"
+	"be-inventaris/peminjaman"
+	"be-inventaris/status"
 	"database/sql"
 	"encoding/json"
 	"log"
@@ -34,6 +38,26 @@ func main() {
 	router.HandleFunc("/users/{id}", DeleteUser).Methods("DELETE")
 	router.HandleFunc("/users/{id}", UpdateUser).Methods("PUT")
 	router.HandleFunc("/users", CreateUser).Methods("POST")
+
+	//ROUTE: kategori barang (package kategori barang)
+	router.HandleFunc("/kategori", kategori.GetKategori).Methods("GET")
+	router.HandleFunc("/kategori", kategori.TambahKategori).Methods("POST")
+	router.HandleFunc("/kategori/{id}", kategori.HapusKategori).Methods("DELETE")
+
+	// routing merk
+	router.HandleFunc("/merk", merk.GetMerk).Methods("GET")
+	router.HandleFunc("/merk", merk.TambahMerk).Methods("POST")
+	router.HandleFunc("/merk/{id}", merk.HapusMerk).Methods("DELETE")
+
+	// router baru untuk status barang
+	router.HandleFunc("/status", status.GetStatusSummary).Methods("GET")
+	router.HandleFunc("/status/filter", status.GetBarangByStatus).Methods("GET")
+
+	// router baru untuk peminjaman
+	router.HandleFunc("/peminjaman", peminjaman.GetAllPeminjaman).Methods("GET")
+	router.HandleFunc("/peminjaman", peminjaman.TambahPeminjaman).Methods("POST")
+	router.HandleFunc("/peminjaman", peminjaman.EditPeminjaman).Methods("PUT")
+	router.HandleFunc("/peminjaman", peminjaman.HapusPeminjaman).Methods("DELETE")
 
 	//ROUTE: daftar barang (daftar package barang)
 	router.HandleFunc("/barang", func(w http.ResponseWriter, r *http.Request) {

@@ -4,18 +4,18 @@
 
     <div class="status-cards">
       <div
-        v-for="status in statusList"
-        :key="status.nama"
+        v-for="status in statusList || []"
+        :key="status.status"
         class="status-card"
-        @click="filterStatus(status.nama)"
+        @click="filterStatus(status.status)"
       >
-        <h3>{{ status.nama }}</h3>
-        <p>{{ status.jumlah }} Barang</p>
+        <h3>{{ status.status }}</h3>
+        <p>{{ status.jumlah }}Barang</p>
       </div>
     </div>
 
-    <div class="table-container" v-show="filteredBarang.length > 0">
-       <button class="close-btn" @click="selectedStatus = ''">Tutup</button> 
+    <div class="table-container" v-if="selectedStatus && filteredBarang.length" >
+      <button class="close-btn" @click="selectedStatus = ''">Tutup</button>
       <h3>Daftar Barang: {{ selectedStatus }}</h3>
       <table class="status-table">
         <thead>
@@ -46,31 +46,36 @@ export default {
   name: 'StatusBarang',
   data() {
     return {
-      statusList: [
-        { nama: 'Tersedia', jumlah: 30 },
-        { nama: 'Dipinjam', jumlah: 10 },
-        { nama: 'Rusak', jumlah: 5 },
-        { nama: 'Service', jumlah: 2 },
-        { nama: 'Hilang', jumlah: 1 },
-      ],
-      allBarang: [
-        { id: 1, nama: 'Laptop', merk: 'Asus', status: 'Dipinjam', deskripsi: 'Digunakan untuk presentasi' },
-        { id: 2, nama: 'Proyektor', merk: 'Epson', status: 'Tersedia', deskripsi: '-' },
-        { id: 3, nama: 'Meja Guru', merk: '-', status: 'Rusak', deskripsi: 'Kaki patah' },
-        // Tambahkan data lainnya di sini jika perlu
-      ],
-      selectedStatus: '',
+      statusList: [],
+      allBarang: [],
+      selectedStatus: ''
     };
   },
   computed: {
     filteredBarang() {
-      if (!this.selectedStatus) return [];
-      return this.allBarang.filter(barang => barang.status === this.selectedStatus);
+      return this.allBarang;
     }
   },
+  mounted() {
+    this.fetchStatusList();
+  },
   methods: {
+    fetchStatusList() {
+      fetch('http://localhost:3000/status')
+        .then(res => res.json())
+        .then(data => {
+          this.statusList = data;
+        })
+        .catch(err => console.error("Gagal ambil data status:", err));
+    },
     filterStatus(status) {
       this.selectedStatus = status;
+      fetch(`http://localhost:3000/status/filter?status=${status}`)
+        .then(res => res.json())
+        .then(data => {
+          this.allBarang = data;
+        })
+        .catch(err => console.error("Gagal ambil data barang:", err));
     }
   }
 };
@@ -111,7 +116,6 @@ export default {
   border-radius: 8px;
   background-color: white;
   box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-  /* transition: max-height 0.3s ease; */
 }
 
 .status-table {
@@ -132,20 +136,19 @@ export default {
 }
 
 .close-btn {
-    background-color: #e74c3c;
-    color: white;
-    border: none;
-    padding: 6px 12px;
-    border-radius: 4px;
-    cursor: pointer;
-    margin-bottom: 10px;
+  background-color: #e74c3c;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-bottom: 10px;
 }
 
 .close-btn:hover {
-    background-color: #c0392b;
+  background-color: #c0392b;
 }
 
-/* Responsif khusus mobile */
 @media (max-width: 600px) {
   .status-cards {
     flex-direction: column;

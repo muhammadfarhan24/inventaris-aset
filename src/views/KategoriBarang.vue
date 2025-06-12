@@ -6,7 +6,7 @@
     </div>
 
     <!-- Kolom Search -->
-    <div class="seacrh-bar">
+    <div class="search-bar">
         <input type="text" v-model="searchQuery" placeholder="Cari Kategori..." />
     </div> 
 
@@ -22,8 +22,8 @@
       <tbody>
         <tr v-for="(kategori, index) in kategoriList" :key="kategori.id">
           <td>{{ index + 1 }}</td>
-          <td>{{ kategori.kode }}</td>
-          <td>{{ kategori.nama }}</td>
+          <td>{{ kategori.kode_kategori }}</td>
+          <td>{{ kategori.nama_kategori }}</td>
           <td>
             <button @click="editKategori(kategori.id)" class="btn-edit">Edit</button>
             <button @click="deleteKategori(kategori.id)" class="btn-delete">Delete</button>
@@ -43,35 +43,73 @@ export default {
   name: 'KategoriBarang',
   data() {
     return {
-      searchQuery: '',  
-      kategoriList: [
-        { id: 1, kode: 'KTG001', nama: 'Elektronik' },
-        { id: 2, kode: 'KTG002', nama: 'Meubel' },
-        { id: 3, kode: 'KTG003', nama: 'Alat Tulis' },
-      ]
-    }
+      searchQuery: '',
+      kategoriList: []
+    };
   },
   computed: {
     filteredKategoriList() {
-        const query = this.searchQuery.toLowerCase();
-        return this.kategoriList.filter(kat =>
-            kat.nama.toLowerCase().includes(query) || kat.kode.toLowerCase().includes(query)
-        );
-    }
+    const query = this.searchQuery.toLowerCase();
+    return this.kategoriList.filter(kat =>
+    (kat.nama_kategori || '').toLowerCase().includes(query) ||
+    (kat.kode_kategori || '').toLowerCase().includes(query)
+  );
+}
+
   },
   methods: {
-    editKategori(id) {
-      alert(`Edit kategori dengan ID: ${id}`);
-      // Navigasi ke form edit atau tampilkan modal edit
+    fetchKategori() {
+      fetch('http://localhost:3000/kategori')
+        .then(res => res.json())
+        .then(data => {
+          this.kategoriList = data;
+        })
+        .catch(err => {
+          console.error('Gagal ambil data kategori:', err);
+        });
+    },
+    tambahKategori() {
+      const kode = prompt('Masukkan kode kategori:');
+      const nama = prompt('Masukkan nama kategori:');
+      if (!kode || !nama) return;
+
+      fetch('http://localhost:3000/kategori', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ kode_kategori: kode, nama_kategori: nama })
+      })
+        .then(res => res.json())
+        .then(() => {
+          this.fetchKategori(); // refresh data
+        })
+        .catch(err => {
+          console.error('Gagal tambah kategori:', err);
+        });
     },
     deleteKategori(id) {
-      if (confirm('Yakin ingin menghapus kategori ini?')) {
-        this.kategoriList = this.kategoriList.filter(kat => kat.id !== id);
-      }
+      if (!confirm('Yakin ingin menghapus kategori ini?')) return;
+
+      fetch(`http://localhost:3000/kategori?id=${id}`, {
+        method: 'DELETE'
+      })
+        .then(() => {
+          this.fetchKategori(); // refresh data
+        })
+        .catch(err => {
+          console.error('Gagal hapus kategori:', err);
+        });
+    },
+    editKategori(id) {
+      alert(`Edit kategori dengan ID: ${id}`);
+      // fitur ini bisa dikembangkan nanti
     }
+  },
+  mounted() {
+    this.fetchKategori();
   }
-}
+};
 </script>
+
 
 <style scoped>
 .kategori-barang {

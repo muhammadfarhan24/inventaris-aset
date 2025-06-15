@@ -17,7 +17,12 @@
           <option value="Rusak">Rusak</option>
           <option value="Dipinjam">Dipinjam</option>
         </select>
-        <input v-model="form.ruangan_id" placeholder="Ruangan ID" required />
+        <select v-model="form.ruangan_id" required>
+          <option disabled value="">Pilih Ruangan</option>
+          <option v-for="ruangan in ruanganList" :key="ruangan.id" :value="ruangan.id">
+            {{ ruangan.nama }}
+          </option>
+        </select>
         <input v-model="form.deskripsi" placeholder="Deskripsi" />
         <button type="submit">Tambah</button>
       </form>
@@ -81,12 +86,13 @@ export default {
     return {
       activeStatus: '',
       barangList: [],
+      ruanganList:[],
       form: {
         nama: '',
         kategori_id: '',
         merk_id: '',
         status: '',
-        ruangan_id: '',
+        ruangan_id: null,
         deskripsi: ''
       }
     };
@@ -112,6 +118,15 @@ export default {
         console.error('Gagal ambil data barang:', err);
       }
     },
+    async ambilDataRuangan() {
+  try {
+    const res = await fetch('http://localhost:3000/ruangan');
+    const data = await res.json();
+    this.ruanganList = data;
+  } catch (err) {
+    console.error('Gagal ambil data ruangan:', err);
+  }
+},
     async tambahBarang() {
       try {
         const res = await fetch('http://localhost:3000/barang', {
@@ -142,6 +157,7 @@ export default {
   mounted() {
     this.ambilDataBarang();
     this.activeStatus = 'Tersedia';
+    this.ambilDataRuangan();
   }
 };
 </script>

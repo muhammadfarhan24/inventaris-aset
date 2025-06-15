@@ -1,45 +1,47 @@
 <template>
-    <div class="gudang-tangga-b">
-        <div class="header-bar">
-            <h2>Daftar Barang - Gudang Tangga B</h2>
-            <button class="btn-tambah" @click="tambahBarang">+ Tambah Barang</button>
-        </div>
-
-        <!-- Kolom Search -->
-        <div class="search-bar">
-            <input type="text" v-model="searchQuery" placeholder="Cari Barang..." />
-        </div>
-
-        <table class="barang-table">
-            <thead>
-                <tr>
-                    <th>No</th>
-                    <th>Kode Barang</th>
-                    <th>Nama Barang</th>
-                    <th>Kategori</th>
-                    <th>Jumlah</th>
-                    <th>Aksi</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr v-for="(barang, index) in filteredBarangList" :key="barang.id">
-                    <td>{{ index + 1 }}</td>
-                    <td>{{ barang.kodeBarang }}</td>
-                    <td>{{ barang.namaBarang }}</td>
-                    <td>{{ barang.kategori }}</td>
-                    <td>{{ barang.jumlah }}</td>
-                    <td>
-                        <button @click="editBarang(barang.id)" class="btn-edit">Edit</button>
-                        <button @click="deleteBarang(barang.id)" class="btn-delete">Delete</button>
-                    </td>
-                </tr>
-                <tr v-if="filteredBarangList.length === 0">
-                    <td colspan="6" style="text-align: center;">Data Tidak Ditemukan</td>
-                </tr>
-            </tbody>
-        </table>
+  <div class="gudang-tangga-b">
+    <div class="header-bar">
+      <h2>Daftar Barang - Gudang Tangga B</h2>
+      <button class="btn-tambah" @click="tambahBarang">+ Tambah Barang</button>
     </div>
+
+    <div class="search-bar">
+      <input type="text" v-model="searchQuery" placeholder="Cari Barang..." />
+    </div>
+
+    <table class="barang-table">
+      <thead>
+        <tr>
+          <th>No</th>
+          <th>Nama Barang</th>
+          <th>Kategori</th>
+          <th>Merk</th>
+          <th>Status</th>
+          <th>Deskripsi</th>
+          <th>Aksi</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-for="(barang, index) in filteredBarangList" :key="barang.id">
+          <td>{{ index + 1 }}</td>
+          <td>{{ barang.nama }}</td>
+          <td>{{ barang.kategori_id }}</td>
+          <td>{{ barang.merk_id }}</td>
+          <td>{{ barang.status }}</td>
+          <td>{{ barang.deskripsi }}</td>
+          <td>
+            <button @click="editBarang(barang.id)" class="btn-edit">Edit</button>
+            <button @click="deleteBarang(barang.id)" class="btn-delete">Delete</button>
+          </td>
+        </tr>
+        <tr v-if="filteredBarangList.length === 0">
+          <td colspan="7" style="text-align: center;">Data Tidak Ditemukan</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 </template>
+
 
 <script>
 export default {
@@ -47,23 +49,27 @@ export default {
     data() {
         return {
             searchQuery: '',
-            barangList: [
-                { id: 1, kodeBarang: 'BRG001', namaBarang: 'Kursi Lipat', kategori: 'Perabot', jumlah: 12 },
-                { id: 2, kodeBarang: 'BRG002', namaBarang: 'Meja Lipat', kategori: 'Perabot', jumlah: 5 }
-            ]
+            barangList: []
         }
     },
     computed: {
         filteredBarangList() {
-            const query = this.searchQuery.toLocaleLowerCase();
+            const query = this.searchQuery.toLowerCase();
             return this.barangList.filter(item =>
-                item.namaBarang.toLocaleLowerCase().includes(query) ||
-                item.kodeBarang.toLocaleLowerCase().includes(query) ||
-                item.kategori.toLocaleLowerCase().includes(query)
+                item.nama.toLowerCase().includes(query) ||
+                item.kategori_id.toLowerCase().includes(query)
             );
         }
     },
     methods: {
+        fetchBarang() {
+            fetch('http://localhost:3000/barang')
+                .then(res => res.json())
+                .then(data => {
+                    this.barangList = data.filter(item => item.ruangan_id == 4); // hanya Gudang Imam A
+                })
+                .catch(err => console.error(err));
+        },
         tambahBarang() {
             alert('Navigasi ke form tambah barang');
         },
@@ -75,9 +81,13 @@ export default {
                 this.barangList = this.barangList.filter(item => item.id !== id);
             }
         }
+    },
+    mounted() {
+        this.fetchBarang();
     }
 }
 </script>
+
 
 <style scoped>
 .gudang-tangga-b {

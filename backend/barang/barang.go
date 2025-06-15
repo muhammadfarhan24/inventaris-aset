@@ -11,10 +11,10 @@ import (
 type Barang struct {
 	ID         int    `json:"id"`
 	Nama       string `json:"nama"`
-	Kategori   string `json:"kategori_id"`
-	Merk       string `json:"merk_id"`
+	Kategori   int    `json:"kategori_id"`
+	Merk       int    `json:"merk_id"`
 	Status     string `json:"status"`
-	Ruangan    string `json:"ruangan_id"`
+	Ruangan    int    `json:"ruangan_id"`
 	Deskripsi  string `json:"deskripsi"`
 	Created_at string `json:"created_at"`
 }

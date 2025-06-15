@@ -28,7 +28,7 @@
                         Ruangan <span style="float: right;">{{ ruanganMenuOpen ? '▲' : '▼' }}</span>
                      </a>
                      <ul v-show="ruanganMenuOpen" class="submenu">
-                        <li><a href="#">Daftar Ruangan</a></li>
+                        <!-- <li><a href="#">Daftar Ruangan</a></li> -->
                         <li><router-link to="/dashboard/gudang-imam-a">Gudang Imam A</router-link></li>
                         <li><router-link to="/dashboard/gudang-imam-b">Gudang Imam B</router-link></li>
                         <li><router-link to="/dashboard/gudang-tangga-a">Gudang Tangga A</router-link></li>

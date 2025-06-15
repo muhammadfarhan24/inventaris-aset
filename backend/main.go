@@ -5,6 +5,8 @@ import (
 	"be-inventaris/kategori"
 	"be-inventaris/merk"
 	"be-inventaris/peminjaman"
+	"be-inventaris/ruangan"
+	"be-inventaris/service"
 	"be-inventaris/status"
 	"database/sql"
 	"encoding/json"
@@ -59,6 +61,17 @@ func main() {
 	router.HandleFunc("/peminjaman", peminjaman.EditPeminjaman).Methods("PUT")
 	router.HandleFunc("/peminjaman", peminjaman.HapusPeminjaman).Methods("DELETE")
 
+	// router untuk service barang
+	router.HandleFunc("/service", service.GetServiceBarang).Methods("GET")
+	router.HandleFunc("/service", service.TambahServiceBarang).Methods("POST")
+	router.HandleFunc("/service", service.HapusServiceBarang).Methods("DELETE")
+	router.HandleFunc("/service/selesai", service.SelesaiServiceBarang).Methods("PUT")
+
+	// router untuk ruangan
+	router.HandleFunc("/ruangan", ruangan.GetRuangan)             // GET
+	router.HandleFunc("/ruangan/tambah", ruangan.TambahRuangan)   // POST
+	router.HandleFunc("/ruangan/barang", ruangan.BarangByRuangan) // GET ?id=1
+
 	//ROUTE: daftar barang (daftar package barang)
 	router.HandleFunc("/barang", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodGet {
@@ -78,13 +91,13 @@ func main() {
 		AllowCredentials: true,
 	})
 
-	http.HandleFunc("/barang", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == "GET" {
-			barang.GetBarang(w, r)
-		} else if r.Method == "POST" {
-			barang.TambahBarang(w, r)
-		}
-	})
+	// http.HandleFunc("/barang", func(w http.ResponseWriter, r *http.Request) {
+	// 	if r.Method == "GET" {
+	// 		barang.GetBarang(w, r)
+	// 	} else if r.Method == "POST" {
+	// 		barang.TambahBarang(w, r)
+	// 	}
+	// })
 
 	log.Println("Server running on :3000")
 	log.Fatal(http.ListenAndServe(":3000", c.Handler(router)))

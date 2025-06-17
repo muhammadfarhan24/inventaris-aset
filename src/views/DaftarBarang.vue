@@ -9,8 +9,15 @@
       <h2>Tambah Barang</h2>
       <form @submit.prevent="tambahBarang" class="form-barang">
         <input v-model="form.nama" placeholder="Nama Barang" required />
-        <input v-model="form.kategori_id" placeholder="Kategori ID" required />
-        <input v-model="form.merk_id" placeholder="Merk ID" required />
+        <select v-model="form.kategori_id" required>
+      <option disabled value="">Pilih Kategori</option>
+      <option v-for="k in kategoriList" :key="k.id" :value="k.id">{{ k.nama_kategori }}</option>
+      </select>
+
+    <select v-model="form.merk_id" required>
+      <option disabled value="">Pilih Merk</option>
+      <option v-for="m in merkList" :key="m.id" :value="m.id">{{ m.nama_merk }}</option>
+    </select>
         <select v-model="form.status" required>
           <option disabled value="">Pilih Status</option>
           <option value="Tersedia">Tersedia</option>
@@ -56,7 +63,7 @@
               <th>Kategori</th>
               <th>Merk</th>
               <th>Status</th>
-              <th>Ruangan</th>
+              <!-- <th>Ruangan</th> -->
               <th>Deskripsi</th>
               <th>Creted_at</th>
             </tr>
@@ -65,10 +72,10 @@
             <tr v-for="(item, index) in filteredBarang" :key="index">
               <td>{{ index + 1 }}</td>
               <td>{{ item.nama }}</td>
-              <td>{{ item.kategori_id }}</td>
-              <td>{{ item.merk_id }}</td>
+              <td>{{ getNamaKategori(item.kategori_id) }}</td>
+              <td>{{ getNamaMerk(item.merk_id) }}</td>
               <td>{{ item.status }}</td>
-              <td>{{ item.ruangan_id }}</td>
+              <!-- <td>{{ getNamaRuangan(item.nama_ruangan) }}</td> -->
               <td>{{ item.deskripsi }}</td>
               <td>{{ item.created_at }}</td>
             </tr>
@@ -87,12 +94,14 @@ export default {
       activeStatus: '',
       barangList: [],
       ruanganList:[],
+      kategoriList: [],
+      merkList: [],
       form: {
         nama: '',
         kategori_id: '',
         merk_id: '',
         status: '',
-        ruangan_id: null,
+        // ruangan_id: null,
         deskripsi: ''
       }
     };
@@ -109,6 +118,18 @@ export default {
     jumlahStatus(status) {
       return this.barangList.filter(b => b.status === status).length;
     },
+    getNamaKategori(id) {
+  const kategori = this.kategoriList.find(k => k.id === id);
+  return kategori ? kategori.nama_kategori : '-';
+},
+getNamaMerk(id) {
+  const merk = this.merkList.find(m => m.id === id);
+  return merk ? merk.nama_merk : '-';
+},
+// getNamaRuangan(id) {
+//   const ruangan = this.ruanganList.find(r => r.id === id);
+//   return ruangan ? ruangan.nama_ruangan : '-';
+// },
     async ambilDataBarang() {
       try {
         const res = await fetch('http://localhost:3000/barang');
@@ -127,6 +148,24 @@ export default {
     console.error('Gagal ambil data ruangan:', err);
   }
 },
+async ambilDataKategori() {
+  try {
+    const res = await fetch('http://localhost:3000/kategori');
+    const data = await res.json();
+    this.kategoriList = data;
+  } catch (err) {
+    console.error('Gagal ambil data kategori:', err);
+  }
+},
+async ambilDataMerk() {
+  try {
+    const res = await fetch('http://localhost:3000/merk');
+    const data = await res.json();
+    this.merkList = data; // sebelumnya salah: this.merkList
+  } catch (err) {
+    console.error('Gagal ambil data merk:', err);
+  }
+},
     async tambahBarang() {
       try {
         const res = await fetch('http://localhost:3000/barang', {
@@ -142,7 +181,7 @@ export default {
             kategori_id: '',
             merk_id: '',
             status: '',
-            ruangan_id: '',
+            // ruangan_id: '',
             deskripsi: ''
           };
           this.ambilDataBarang(); // refresh list
@@ -156,8 +195,10 @@ export default {
   },
   mounted() {
     this.ambilDataBarang();
+    // this.ambilDataRuangan();
+    this.ambilDataKategori();
+    this.ambilDataMerk();
     this.activeStatus = 'Tersedia';
-    this.ambilDataRuangan();
   }
 };
 </script>

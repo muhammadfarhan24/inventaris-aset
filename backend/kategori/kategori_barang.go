@@ -76,6 +76,39 @@ func TambahKategori(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]string{"message": "Kategori berhasil ditambahkan"})
 }
 
+func EditKategori(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "PUT" {
+		http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	vars := mux.Vars(r)
+	id := vars["id"]
+
+	var k Kategori
+	err := json.NewDecoder(r.Body).Decode(&k)
+	if err != nil {
+		http.Error(w, "Invalid input", http.StatusBadRequest)
+		return
+	}
+
+	db, err := connectDB()
+	if err != nil {
+		http.Error(w, "DB error", http.StatusInternalServerError)
+		return
+	}
+	defer db.Close()
+
+	_, err = db.Exec("UPDATE kategori_barang SET kode_kategori=?, nama_kategori=? WHERE id=?", k.Kode, k.Nama, id)
+	if err != nil {
+		http.Error(w, "Update error", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{"message": "Kategori berhasil diupdate"})
+}
+
 func HapusKategori(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id := vars["id"]

@@ -1,14 +1,22 @@
 <template>
   <div class="kategori-barang">
     <div class="header-bar">
-        <h2>Daftar Kategori Barang</h2>
-        <button class="btn-tambah" @click="tambahKategori">+ Tambah Kategori</button>
+      <h2>Daftar Kategori Barang</h2>
+      <button class="btn-tambah" @click="tambahKategori">+ Tambah Kategori</button>
     </div>
 
-    <!-- Kolom Search -->
     <div class="search-bar">
-        <input type="text" v-model="searchQuery" placeholder="Cari Kategori..." />
-    </div> 
+      <input type="text" v-model="searchQuery" placeholder="Cari Kategori..." />
+    </div>
+
+    <!-- Form Tambah / Edit -->
+    <div v-if="showForm" class="form-kategori">
+      <h3>{{ formMode === 'tambah' ? 'Tambah' : 'Edit' }} Kategori</h3>
+      <input type="text" v-model="formData.kode_kategori" placeholder="Kode Kategori" disabled />
+      <input type="text" v-model="formData.nama_kategori" placeholder="Nama Kategori" />
+      <button @click="submitForm" class="btn-simpan">Simpan</button>
+      <button @click="batalForm" class="btn-batal">Batal</button>
+    </div>
 
     <table class="kategori-table">
       <thead>
@@ -20,7 +28,7 @@
         </tr>
       </thead>
       <tbody>
-        <tr v-for="(kategori, index) in kategoriList" :key="kategori.id">
+        <tr v-for="(kategori, index) in filteredKategoriList" :key="kategori.id">
           <td>{{ index + 1 }}</td>
           <td>{{ kategori.kode_kategori }}</td>
           <td>{{ kategori.nama_kategori }}</td>
@@ -29,9 +37,8 @@
             <button @click="deleteKategori(kategori.id)" class="btn-delete">Delete</button>
           </td>
         </tr>
-
         <tr v-if="filteredKategoriList.length === 0">
-            <td colspan="4" style="text-align: center;">Data Tidak Ditemukan</td>
+          <td colspan="4" style="text-align: center;">Data Tidak Ditemukan</td>
         </tr>
       </tbody>
     </table>
@@ -40,22 +47,26 @@
 
 <script>
 export default {
-  name: 'KategoriBarang',
   data() {
     return {
       searchQuery: '',
-      kategoriList: []
+      kategoriList: [],
+      formMode: 'tambah',
+      showForm: false,
+      formData: {
+        id: null,
+        kode_kategori: '',
+        nama_kategori: ''
+      }
     };
   },
   computed: {
     filteredKategoriList() {
-    const query = this.searchQuery.toLowerCase();
-    return this.kategoriList.filter(kat =>
-    (kat.nama_kategori || '').toLowerCase().includes(query) ||
-    (kat.kode_kategori || '').toLowerCase().includes(query)
-  );
-}
-
+      const q = this.searchQuery.toLowerCase();
+      return this.kategoriList.filter(k =>
+        k.nama_kategori.toLowerCase().includes(q) || k.kode_kategori.toLowerCase().includes(q)
+      );
+    }
   },
   methods: {
     fetchKategori() {
@@ -63,45 +74,61 @@ export default {
         .then(res => res.json())
         .then(data => {
           this.kategoriList = data;
-        })
-        .catch(err => {
-          console.error('Gagal ambil data kategori:', err);
         });
     },
-    tambahKategori() {
-      const kode = prompt('Masukkan kode kategori:');
-      const nama = prompt('Masukkan nama kategori:');
-      if (!kode || !nama) return;
+    generateKodeBaru() {
+      const prefix = 'KT';
+      const angkaList = this.kategoriList
+        .map(k => parseInt(k.kode_kategori?.replace(prefix, '')))
+        .filter(n => !isNaN(n));
 
-      fetch('http://localhost:3000/kategori', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ kode_kategori: kode, nama_kategori: nama })
-      })
-        .then(res => res.json())
-        .then(() => {
-          this.fetchKategori(); // refresh data
-        })
-        .catch(err => {
-          console.error('Gagal tambah kategori:', err);
-        });
+      const maxAngka = angkaList.length > 0 ? Math.max(...angkaList) : 0;
+      const nextAngka = maxAngka + 1;
+
+      return prefix + nextAngka.toString().padStart(3, '0');
+    },
+    tambahKategori() {
+      this.formMode = 'tambah';
+      this.formData = {
+        id: null,
+        kode_kategori: this.generateKodeBaru(),
+        nama_kategori: ''
+      };
+      this.showForm = true;
+    },
+    editKategori(id) {
+      const kat = this.kategoriList.find(k => k.id === id);
+      if (kat) {
+        this.formMode = 'edit';
+        this.formData = { ...kat };
+        this.showForm = true;
+      }
     },
     deleteKategori(id) {
       if (!confirm('Yakin ingin menghapus kategori ini?')) return;
-
-      fetch(`http://localhost:3000/kategori?id=${id}`, {
+      fetch(`http://localhost:3000/kategori/${id}`, {
         method: 'DELETE'
-      })
-        .then(() => {
-          this.fetchKategori(); // refresh data
-        })
-        .catch(err => {
-          console.error('Gagal hapus kategori:', err);
-        });
+      }).then(() => this.fetchKategori());
     },
-    editKategori(id) {
-      alert(`Edit kategori dengan ID: ${id}`);
-      // fitur ini bisa dikembangkan nanti
+    submitForm() {
+  const method = this.formMode === 'tambah' ? 'POST' : 'PUT';
+  const url = this.formMode === 'tambah'
+    ? 'http://localhost:3000/kategori'
+    : `http://localhost:3000/kategori/${this.formData.id}`;
+
+  fetch(url, {
+    method,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(this.formData)
+  })
+    .then(res => res.json())
+    .then(() => {
+      this.fetchKategori();
+      this.showForm = false;
+    });
+},
+    batalForm() {
+      this.showForm = false;
     }
   },
   mounted() {
@@ -109,7 +136,6 @@ export default {
   }
 };
 </script>
-
 
 <style scoped>
 .kategori-barang {
@@ -119,55 +145,41 @@ export default {
   box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }
 
-.kategori-barang h2 {
+.header-bar {
+  display: flex;
+  justify-content: space-between;
   margin-bottom: 20px;
 }
 
-.header-bar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-}
-
 .btn-tambah {
-    background-color: #27ae60;
-    color: white;
-    border: none;
-    padding: 10px 16px;
-    border-radius: 4px;
-    cursor: pointer;
-    font-weight: bold;
-}
-
-.btn-tambah:hover {
-    background-color: #219150;
+  background-color: #27ae60;
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
 }
 
 .search-bar {
-    margin-bottom: 20px;
+  margin-bottom: 20px;
 }
-
 .search-bar input {
-    width: 100%;
-    padding: 10px 12px;
-    font-size: 1rem;
-    border: 1px solid #ccc;
-    border-radius: 4px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
 }
 
 .kategori-table {
   width: 100%;
   border-collapse: collapse;
 }
-
 .kategori-table th,
 .kategori-table td {
   padding: 12px;
   border-bottom: 1px solid #ccc;
-  text-align: left;
 }
-
 .kategori-table th {
   background-color: #2c3e50;
   color: white;
@@ -176,27 +188,44 @@ export default {
 .btn-edit {
   background-color: #3498db;
   color: white;
-  border: none;
   padding: 6px 10px;
-  border-radius: 4px;
   margin-right: 5px;
-  cursor: pointer;
+  border: none;
+  border-radius: 4px;
 }
-
 .btn-delete {
   background-color: #e74c3c;
   color: white;
-  border: none;
   padding: 6px 10px;
+  border: none;
   border-radius: 4px;
-  cursor: pointer;
 }
 
-.btn-edit:hover {
-  background-color: #2980b9;
+.form-kategori {
+  background: #f5f5f5;
+  padding: 15px;
+  margin-top: 20px;
+  border-radius: 8px;
 }
-
-.btn-delete:hover {
-  background-color: #c0392b;
+.form-kategori input {
+  display: block;
+  width: 100%;
+  margin-bottom: 10px;
+  padding: 8px;
+}
+.btn-simpan {
+  background-color: #2ecc71;
+  color: white;
+  padding: 8px 16px;
+  margin-right: 8px;
+  border: none;
+  border-radius: 4px;
+}
+.btn-batal {
+  background-color: #95a5a6;
+  color: white;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
 }
 </style>

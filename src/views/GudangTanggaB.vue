@@ -25,8 +25,8 @@
         <tr v-for="(barang, index) in filteredBarangList" :key="barang.id">
           <td>{{ index + 1 }}</td>
           <td>{{ barang.nama }}</td>
-          <td>{{ barang.kategori_id }}</td>
-          <td>{{ barang.merk_id }}</td>
+          <td>{{ getNamaKategori(barang.kategori_id) }}</td>
+          <td>{{ getNamaMerk(barang.merk_id) }}</td>
           <td>{{ barang.status }}</td>
           <td>{{ barang.deskripsi }}</td>
           <td>
@@ -49,17 +49,20 @@ export default {
     data() {
         return {
             searchQuery: '',
-            barangList: []
-        }
+            barangList: [],
+            kategoriList: [],
+            merkList: []
+        };
     },
     computed: {
         filteredBarangList() {
-            const query = this.searchQuery.toLowerCase();
-            return this.barangList.filter(item =>
-                item.nama.toLowerCase().includes(query) ||
-                item.kategori_id.toLowerCase().includes(query)
-            );
-        }
+          const query = this.searchQuery.toLowerCase();
+          return this.barangList.filter(item =>
+            item.nama.toLowerCase().includes(query) ||
+            this.getNamaKategori(item.kategori_id).toLowerCase().includes(query) ||
+            this.getNamaMerk(item.merk_id).toLowerCase().includes(query)
+          );
+      }
     },
     methods: {
         fetchBarang() {
@@ -70,6 +73,28 @@ export default {
                 })
                 .catch(err => console.error(err));
         },
+        fetchKategori() {
+      fetch('http://localhost:3000/kategori')
+        .then(res => res.json())
+        .then(data => {
+          this.kategoriList = data;
+        });
+    },
+    fetchMerk() {
+      fetch('http://localhost:3000/merk')
+        .then(res => res.json())
+        .then(data => {
+          this.merkList = data;
+        });
+    },
+    getNamaKategori(id) {
+      const kategori = this.kategoriList.find(k => k.id === id);
+      return kategori ? kategori.nama_kategori : '-';
+    },
+    getNamaMerk(id) {
+      const merk = this.merkList.find(m => m.id === id);
+      return merk ? merk.nama_merk : '-';
+    },
         tambahBarang() {
             alert('Navigasi ke form tambah barang');
         },
@@ -84,6 +109,8 @@ export default {
     },
     mounted() {
         this.fetchBarang();
+        this.fetchKategori();
+        this.fetchMerk();
     }
 }
 </script>

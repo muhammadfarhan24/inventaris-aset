@@ -51,7 +51,7 @@
                 <tr v-for="(item, i) in barangList" :key="item.id">
                   <td>{{ i + 1 }}</td>
                   <td>{{ item.nama }}</td>
-                  <td>{{ item.merk }}</td>
+                  <td>{{ item.merk_id }}</td>
                   <td>{{ item.status }}</td>
                   <td>{{ item.deskripsi }}</td>
                 </tr>
@@ -80,7 +80,10 @@
             <h3>Daftar Ruangan</h3>
             <table class="summary-table">
               <thead>
-                <tr><th>No</th><th>Nama Ruangan</th></tr>
+                <tr>
+                  <th>No</th>
+                  <th>Nama Ruangan</th>
+                </tr>
               </thead>
               <tbody>
                 <tr v-for="(item, i) in ruanganList" :key="i">
@@ -102,7 +105,7 @@
                 <tr v-for="(item, i) in penggunaList" :key="i">
                   <td>{{ i + 1 }}</td>
                   <td>{{ item.nama }}</td>
-                  <td>{{ item.peran }}</td>
+                  <td>{{ item.role }}</td>
                 </tr>
               </tbody>
             </table>
@@ -114,30 +117,47 @@
 </template>
 
 <script>
+import axios from 'axios'
+
 export default {
   name: 'DashboardPage',
   data() {
     return {
       sidebarOpen: false,
       activeView: '',
-      barangList: [
-        { id: 1, nama: 'Laptop', merk: 'Asus', status: 'Dipinjam', deskripsi: 'Digunakan untuk presentasi' },
-        { id: 2, nama: 'Proyektor', merk: 'Epson', status: 'Tersedia', deskripsi: '-' },
-        { id: 3, nama: 'Meja Guru', merk: '-', status: 'Rusak', deskripsi: 'Kaki patah' }
-      ],
-      kategoriList: ['Elektronik', 'Meubelair', 'Alat Tulis', 'Kendaraan', 'Peralatan', 'Komputer', 'Audio', 'Lainnya'],
-      ruanganList: ['Ruang Kelas A', 'Ruang Guru', 'Laboratorium', 'Gudang A', 'Gudang B', 'Sekretariat', 'Perpustakaan'],
-      penggunaList: [
-        { nama: 'Admin', peran: 'Administrator' },
-        { nama: 'Ustadz Hasan', peran: 'Guru' },
-        { nama: 'Ustadzah Aisyah', peran: 'Guru' },
-        { nama: 'Bagian Sarpras', peran: 'Operator' },
-        { nama: 'Pengelola Barang', peran: 'Staff' }
-      ]
+      barangList: [],
+      kategoriList: [],
+      ruanganList: [],
+      penggunaList: []
+    }
+  },
+  mounted() {
+    this.fetchBarang()
+    this.fetchKategori()
+    this.fetchRuangan()
+    this.fetchPengguna()
+  },
+  methods: {
+    async fetchBarang() {
+      const res = await axios.get('http://localhost:3000/barang')
+      this.barangList = res.data
+    },
+    async fetchKategori() {
+      const res = await axios.get('http://localhost:3000/kategori')
+      this.kategoriList = res.data.map(k => k.nama_kategori) // sesuaikan field
+    },
+    async fetchRuangan() {
+      const res = await axios.get('http://localhost:3000/ruangan')
+      this.ruanganList = res.data.map(r => r.nama) // sesuaikan field
+    },
+    async fetchPengguna() {
+      const res = await axios.get('http://localhost:3000/users')
+      this.penggunaList = res.data
     }
   }
 }
 </script>
+
 
 <style scoped>
 .dashboard {

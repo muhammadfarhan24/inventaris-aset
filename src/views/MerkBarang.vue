@@ -1,14 +1,23 @@
 <template>
   <div class="merk-barang">
     <div class="header-bar">
-        <h2>Daftar Merk Barang</h2>
-        <button class="btn-tambah" @click="tambahMerk">+ Tambah Merk</button>
+      <h2>Daftar Merk Barang</h2>
+      <button class="btn-tambah" @click="tambahMerk">+ Tambah Merk</button>
     </div>
 
     <!-- Kolom Search -->
     <div class="search-bar">
-        <input type="text" v-model="searchQuery" placeholder="Cari Merk..." />
-    </div> 
+      <input type="text" v-model="searchQuery" placeholder="Cari Merk..." />
+    </div>
+
+    <!-- Form Tambah / Edit -->
+    <div v-if="showForm" class="form-merk">
+      <h3>{{ formMode === 'tambah' ? 'Tambah' : 'Edit' }} Merk</h3>
+      <input type="text" v-model="formData.kode_merk" placeholder="Kode Merk" disabled />
+      <input type="text" v-model="formData.nama_merk" placeholder="Nama Merk" />
+      <button @click="submitForm" class="btn-simpan">Simpan</button>
+      <button @click="batalForm" class="btn-batal">Batal</button>
+    </div>
 
     <table class="merk-table">
       <thead>
@@ -40,19 +49,24 @@
 
 <script>
 export default {
-  name: 'MerkBarang',
   data() {
     return {
       searchQuery: '',
-      merkList: []
+      merkList: [],
+      formMode: 'tambah',
+      showForm: false,
+      formData: {
+        id: null,
+        kode_merk: '',
+        nama_merk: ''
+      }
     };
   },
   computed: {
     filteredMerkList() {
-      const query = this.searchQuery.toLowerCase();
+      const q = this.searchQuery.toLowerCase();
       return this.merkList.filter(m =>
-        (m.nama_merk || '').toLowerCase().includes(query) ||
-        (m.kode_merk || '').toLowerCase().includes(query)
+        m.nama_merk.toLowerCase().includes(q) || m.kode_merk.toLowerCase().includes(q)
       );
     }
   },
@@ -62,41 +76,62 @@ export default {
         .then(res => res.json())
         .then(data => {
           this.merkList = data;
-        })
-        .catch(err => {
-          console.error('Gagal ambil data merk:', err);
         });
     },
-    tambahMerk() {
-      const kode = prompt('Masukkan kode merk:');
-      const nama = prompt('Masukkan nama merk:');
-      if (!kode || !nama) return;
+    generateKodeBaru() {
+      const prefix = 'MK';
+      const angkaList = this.merkList
+        .map(m => parseInt(m.kode_merk?.replace(prefix, '')))
+        .filter(n => !isNaN(n));
 
-      fetch('http://localhost:3000/merk', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ kode_merk: kode, nama_merk: nama })
-      })
-        .then(res => res.json())
-        .then(() => this.fetchMerk())
-        .catch(err => {
-          console.error('Gagal tambah merk:', err);
-        });
+      const maxAngka = angkaList.length > 0 ? Math.max(...angkaList) : 0;
+      const nextAngka = maxAngka + 1;
+
+      return prefix + nextAngka.toString().padStart(3, '0');
+    },
+    tambahMerk() {
+      this.formMode = 'tambah';
+      this.formData = {
+        id: null,
+        kode_merk: this.generateKodeBaru(),
+        nama_merk: ''
+      };
+      this.showForm = true;
+    },
+    editMerk(id) {
+      const merk = this.merkList.find(m => m.id === id);
+      if (merk) {
+        this.formMode = 'edit';
+        this.formData = { ...merk };
+        this.showForm = true;
+      }
     },
     deleteMerk(id) {
       if (!confirm('Yakin ingin menghapus merk ini?')) return;
 
       fetch(`http://localhost:3000/merk/${id}`, {
         method: 'DELETE'
+      }).then(() => this.fetchMerk());
+    },
+    submitForm() {
+      const method = this.formMode === 'tambah' ? 'POST' : 'PUT';
+      const url = this.formMode === 'tambah'
+        ? 'http://localhost:3000/merk'
+        : `http://localhost:3000/merk/${this.formData.id}`;
+
+      fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(this.formData)
       })
-        .then(() => this.fetchMerk())
-        .catch(err => {
-          console.error('Gagal hapus merk:', err);
+        .then(res => res.json())
+        .then(() => {
+          this.fetchMerk();
+          this.showForm = false;
         });
     },
-    editMerk(id) {
-      alert(`Edit merk dengan ID: ${id}`);
-      // fitur edit bisa dikembangkan nanti
+    batalForm() {
+      this.showForm = false;
     }
   },
   mounted() {
@@ -113,14 +148,9 @@ export default {
   box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }
 
-.merk-barang h2 {
-  margin-bottom: 20px;
-}
-
 .header-bar {
   display: flex;
   justify-content: space-between;
-  align-items: center;
   margin-bottom: 20px;
 }
 
@@ -134,18 +164,12 @@ export default {
   font-weight: bold;
 }
 
-.btn-tambah:hover {
-  background-color: #219150;
-}
-
 .search-bar {
   margin-bottom: 20px;
 }
-
 .search-bar input {
   width: 100%;
   padding: 10px 12px;
-  font-size: 1rem;
   border: 1px solid #ccc;
   border-radius: 4px;
 }
@@ -154,14 +178,11 @@ export default {
   width: 100%;
   border-collapse: collapse;
 }
-
 .merk-table th,
 .merk-table td {
   padding: 12px;
   border-bottom: 1px solid #ccc;
-  text-align: left;
 }
-
 .merk-table th {
   background-color: #2c3e50;
   color: white;
@@ -170,27 +191,44 @@ export default {
 .btn-edit {
   background-color: #3498db;
   color: white;
-  border: none;
   padding: 6px 10px;
-  border-radius: 4px;
   margin-right: 5px;
-  cursor: pointer;
+  border: none;
+  border-radius: 4px;
 }
-
 .btn-delete {
   background-color: #e74c3c;
   color: white;
-  border: none;
   padding: 6px 10px;
+  border: none;
   border-radius: 4px;
-  cursor: pointer;
 }
 
-.btn-edit:hover {
-  background-color: #2980b9;
+.form-merk {
+  background: #f5f5f5;
+  padding: 15px;
+  margin-top: 20px;
+  border-radius: 8px;
 }
-
-.btn-delete:hover {
-  background-color: #c0392b;
+.form-merk input {
+  display: block;
+  width: 100%;
+  margin-bottom: 10px;
+  padding: 8px;
+}
+.btn-simpan {
+  background-color: #2ecc71;
+  color: white;
+  padding: 8px 16px;
+  margin-right: 8px;
+  border: none;
+  border-radius: 4px;
+}
+.btn-batal {
+  background-color: #95a5a6;
+  color: white;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
 }
 </style>

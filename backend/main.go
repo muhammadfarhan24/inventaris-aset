@@ -2,6 +2,7 @@ package main
 
 import (
 	"be-inventaris/barang"
+	"be-inventaris/dashboard"
 	"be-inventaris/kategori"
 	"be-inventaris/merk"
 	"be-inventaris/peminjaman"
@@ -41,14 +42,19 @@ func main() {
 	router.HandleFunc("/users/{id}", UpdateUser).Methods("PUT")
 	router.HandleFunc("/users", CreateUser).Methods("POST")
 
+	// Route untuk main content dashboard
+	router.HandleFunc("/dashboard", dashboard.GetSummaryDashboard).Methods("GET")
+
 	//ROUTE: kategori barang (package kategori barang)
 	router.HandleFunc("/kategori", kategori.GetKategori).Methods("GET")
 	router.HandleFunc("/kategori", kategori.TambahKategori).Methods("POST")
+	router.HandleFunc("/kategori/{id}", kategori.EditKategori).Methods("PUT")
 	router.HandleFunc("/kategori/{id}", kategori.HapusKategori).Methods("DELETE")
 
 	// routing merk
 	router.HandleFunc("/merk", merk.GetMerk).Methods("GET")
 	router.HandleFunc("/merk", merk.TambahMerk).Methods("POST")
+	router.HandleFunc("/merk/{id}", merk.EditMerk).Methods("PUT")
 	router.HandleFunc("/merk/{id}", merk.HapusMerk).Methods("DELETE")
 
 	// router baru untuk status barang

@@ -11,7 +11,12 @@
       <form @submit.prevent="tambahService">
         <div class="form-row">
           <label>Nama Barang:</label>
-          <input v-model="form.nama" type="text" required />
+          <select v-model="form.barang_id" required>
+            <option disabled value="">Pilih Barang</option>
+            <option v-for="b in barangList" :key="b.id" :value="b.id">
+              {{ b.nama }}
+            </option>
+          </select>
         </div>
         <div class="form-row">
           <label>Keterangan Kerusakan:</label>
@@ -63,15 +68,17 @@ export default {
     return {
       showForm: false,
       form: {
-        nama: '',
+        barang_id: '',
         kerusakan: '',
         tanggalMasuk: '',
       },
-      serviceList: []
+      serviceList: [],
+      barangList: []
     }
   },
   mounted() {
     this.getServiceList();
+    this.ambilBarangList();
   },
   methods: {
     getServiceList() {
@@ -82,9 +89,18 @@ export default {
         })
         .catch(() => alert("Gagal mengambil data service."));
     },
+    async ambilBarangList() {
+  try {
+    const res = await fetch("http://localhost:3000/barang");
+    const data = await res.json();
+    this.barangList = data;
+  } catch (err) {
+    console.error("Gagal mengambil data barang:", err);
+  }
+},
     tambahService() {
       const payload = {
-        nama_barang: this.form.nama,
+        barang_id: this.form.barang_id,
         deskripsi: this.form.kerusakan,
         tanggal_service: this.form.tanggalMasuk,
         status: "Dalam Service"
@@ -96,7 +112,7 @@ export default {
       })
         .then(() => {
           this.getServiceList();
-          this.form = { nama: '', kerusakan: '', tanggalMasuk: '' };
+          this.form = { barang_id: '', kerusakan: '', tanggalMasuk: '' };
           this.showForm = false;
         })
         .catch(() => alert("Gagal menambah data."));

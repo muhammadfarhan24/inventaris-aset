@@ -10,6 +10,7 @@ import (
 
 type ServiceBarang struct {
 	ID             int    `json:"id"`
+	BarangID       int    `json:"barang_id"`
 	NamaBarang     string `json:"nama_barang"`
 	Deskripsi      string `json:"deskripsi"`
 	TanggalService string `json:"tanggal_service"`
@@ -28,7 +29,11 @@ func GetServiceBarang(w http.ResponseWriter, r *http.Request) {
 	}
 	defer db.Close()
 
-	rows, err := db.Query("SELECT id, nama_barang, deskripsi, tanggal_service, status FROM service_barang")
+	rows, err := db.Query(`
+		SELECT sb.id, sb.barang_id, b.nama, sb.deskripsi, sb.tanggal_service, sb.status
+		FROM service_barang sb
+		JOIN barang b ON sb.barang_id = b.id
+	`)
 	if err != nil {
 		http.Error(w, "Query error", http.StatusInternalServerError)
 		return
@@ -38,7 +43,8 @@ func GetServiceBarang(w http.ResponseWriter, r *http.Request) {
 	var list []ServiceBarang
 	for rows.Next() {
 		var s ServiceBarang
-		if err := rows.Scan(&s.ID, &s.NamaBarang, &s.Deskripsi, &s.TanggalService, &s.Status); err != nil {
+		// Perbaikan disini ⬇️
+		if err := rows.Scan(&s.ID, &s.BarangID, &s.NamaBarang, &s.Deskripsi, &s.TanggalService, &s.Status); err != nil {
 			continue
 		}
 		list = append(list, s)
@@ -69,15 +75,23 @@ func TambahServiceBarang(w http.ResponseWriter, r *http.Request) {
 	}
 	defer db.Close()
 
-	_, err = db.Exec(`INSERT INTO service_barang (nama_barang, deskripsi, tanggal_service, status) 
-		VALUES (?, ?, ?, ?)`, s.NamaBarang, s.Deskripsi, s.TanggalService, s.Status)
+	// Masukkan ke service_barang
+	_, err = db.Exec(`INSERT INTO service_barang (barang_id, deskripsi, tanggal_service, status)
+		VALUES (?, ?, ?, ?)`, s.BarangID, s.Deskripsi, s.TanggalService, s.Status)
 	if err != nil {
 		http.Error(w, "Insert error", http.StatusInternalServerError)
 		return
 	}
 
+	// Update status barang
+	_, err = db.Exec("UPDATE barang SET status = 'Diservis' WHERE id = ?", s.BarangID)
+	if err != nil {
+		http.Error(w, "Gagal update status barang", http.StatusInternalServerError)
+		return
+	}
+
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(map[string]string{"message": "Service barang berhasil ditambahkan"})
+	json.NewEncoder(w).Encode(map[string]string{"message": "Barang masuk service & status diperbarui"})
 }
 
 func HapusServiceBarang(w http.ResponseWriter, r *http.Request) {
@@ -109,11 +123,27 @@ func SelesaiServiceBarang(w http.ResponseWriter, r *http.Request) {
 	}
 	defer db.Close()
 
-	_, err = db.Exec("UPDATE service_barang SET status = 'Selesai' WHERE id = ?", id)
+	// Ambil barang_id dulu
+	var barangID int
+	err = db.QueryRow("SELECT barang_id FROM service_barang WHERE id = ?", id).Scan(&barangID)
 	if err != nil {
-		http.Error(w, "Update error", http.StatusInternalServerError)
+		http.Error(w, "Gagal ambil data barang", http.StatusInternalServerError)
 		return
 	}
 
-	json.NewEncoder(w).Encode(map[string]string{"message": "Status service diperbarui menjadi 'Selesai'"})
+	// Update service_barang
+	_, err = db.Exec("UPDATE service_barang SET status = 'Selesai' WHERE id = ?", id)
+	if err != nil {
+		http.Error(w, "Gagal update status service", http.StatusInternalServerError)
+		return
+	}
+
+	// Update barang
+	_, err = db.Exec("UPDATE barang SET status = 'Tersedia' WHERE id = ?", barangID)
+	if err != nil {
+		http.Error(w, "Gagal update status barang", http.StatusInternalServerError)
+		return
+	}
+
+	json.NewEncoder(w).Encode(map[string]string{"message": "Status service & barang diperbarui"})
 }

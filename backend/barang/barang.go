@@ -3,6 +3,7 @@ package barang
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -10,6 +11,7 @@ import (
 
 type Barang struct {
 	ID         int    `json:"id"`
+	KodeBarang string `json: "kode_barang"`
 	Nama       string `json:"nama"`
 	Kategori   int    `json:"kategori_id"`
 	Merk       int    `json:"merk_id"`
@@ -31,7 +33,7 @@ func GetBarang(w http.ResponseWriter, r *http.Request) {
 	}
 	defer db.Close()
 
-	rows, err := db.Query("SELECT id, nama, kategori_id, merk_id, status, ruangan_id, deskripsi, created_at FROM barang")
+	rows, err := db.Query("SELECT id, kode_barang, nama, kategori_id, merk_id, status, ruangan_id, deskripsi, created_at FROM barang")
 	if err != nil {
 		http.Error(w, "Query error", http.StatusInternalServerError)
 		return
@@ -41,7 +43,7 @@ func GetBarang(w http.ResponseWriter, r *http.Request) {
 	var list []Barang
 	for rows.Next() {
 		var b Barang
-		err := rows.Scan(&b.ID, &b.Nama, &b.Kategori, &b.Merk, &b.Status, &b.Ruangan, &b.Deskripsi, &b.Created_at)
+		err := rows.Scan(&b.ID, &b.KodeBarang, &b.Nama, &b.Kategori, &b.Merk, &b.Status, &b.Ruangan, &b.Deskripsi, &b.Created_at)
 		if err != nil {
 			continue
 		}
@@ -72,10 +74,18 @@ func TambahBarang(w http.ResponseWriter, r *http.Request) {
 	}
 	defer db.Close()
 
+	//  Tambahkan ini:
+	kodeBarang, err := generateKodeBarang(db)
+	if err != nil {
+		http.Error(w, "Gagal generate kode barang", http.StatusInternalServerError)
+		return
+	}
+
+	//  Gunakan kodeBarang hasil generate, bukan dari request
 	_, err = db.Exec(`
-		INSERT INTO barang (nama, kategori_id, merk_id, status, ruangan_id, deskripsi)
-		VALUES (?, ?, ?, ?, ?, ?)`,
-		b.Nama, b.Kategori, b.Merk, b.Status, b.Ruangan, b.Deskripsi)
+		INSERT INTO barang (kode_barang, nama, kategori_id, merk_id, status, ruangan_id, deskripsi)
+		VALUES (?, ?, ?, ?, ?, ?, ?)`,
+		kodeBarang, b.Nama, b.Kategori, b.Merk, b.Status, b.Ruangan, b.Deskripsi)
 
 	if err != nil {
 		http.Error(w, "Insert error", http.StatusInternalServerError)
@@ -83,5 +93,28 @@ func TambahBarang(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(map[string]string{"message": "Barang berhasil ditambahkan"})
+	json.NewEncoder(w).Encode(map[string]string{
+		"message":     "Barang berhasil ditambahkan",
+		"kode_barang": kodeBarang,
+	})
+}
+
+func generateKodeBarang(db *sql.DB) (string, error) {
+	var lastKode string
+	err := db.QueryRow("SELECT kode_barang FROM barang ORDER BY id DESC LIMIT 1").Scan(&lastKode)
+	if err != nil && err != sql.ErrNoRows {
+		return "", err
+	}
+
+	prefix := "BRG"
+	var nextNum int
+	if lastKode != "" {
+		_, err := fmt.Sscanf(lastKode, "BRG%04d", &nextNum)
+		if err != nil {
+			nextNum = 0
+		}
+	}
+	nextNum++
+
+	return fmt.Sprintf("%s%04d", prefix, nextNum), nil
 }

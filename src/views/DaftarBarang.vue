@@ -101,14 +101,16 @@ export default {
         kategori_id: '',
         merk_id: '',
         status: '',
-        // ruangan_id: null,
+        ruangan_id: null,
         deskripsi: ''
       }
     };
   },
   computed: {
     filteredBarang() {
-      return this.barangList.filter(b => b.status === this.activeStatus);
+      return Array.isArray(this.barangList)
+        ? this.barangList.filter(b => b.status === this.activeStatus)
+        : [];
     }
   },
   methods: {
@@ -126,17 +128,18 @@ getNamaMerk(id) {
   const merk = this.merkList.find(m => m.id === id);
   return merk ? merk.nama_merk : '-';
 },
-// getNamaRuangan(id) {
-//   const ruangan = this.ruanganList.find(r => r.id === id);
-//   return ruangan ? ruangan.nama_ruangan : '-';
-// },
+getNamaRuangan(id) {
+  const ruangan = this.ruanganList.find(r => r.id === id);
+  return ruangan ? ruangan.nama_ruangan : '-';
+},
     async ambilDataBarang() {
       try {
         const res = await fetch('http://localhost:3000/barang');
         const data = await res.json();
-        this.barangList = data;
+        this.barangList = Array.isArray(data) ? data : [];
       } catch (err) {
         console.error('Gagal ambil data barang:', err);
+        this.barangList = [];
       }
     },
     async ambilDataRuangan() {
@@ -181,7 +184,7 @@ async ambilDataMerk() {
             kategori_id: '',
             merk_id: '',
             status: '',
-            // ruangan_id: '',
+            ruangan_id: '',
             deskripsi: ''
           };
           this.ambilDataBarang(); // refresh list
@@ -195,7 +198,7 @@ async ambilDataMerk() {
   },
   mounted() {
     this.ambilDataBarang();
-    // this.ambilDataRuangan();
+    this.ambilDataRuangan();
     this.ambilDataKategori();
     this.ambilDataMerk();
     this.activeStatus = 'Tersedia';

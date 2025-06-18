@@ -30,7 +30,8 @@
             {{ ruangan.nama }}
           </option>
         </select>
-        <input v-model="form.deskripsi" placeholder="Deskripsi" />
+        <!-- input deskripsi -->
+        <input v-if="form.status === 'Rusak'" v-model="form.deskripsi" placeholder="Deskripsi" />
         <button type="submit">Tambah</button>
       </form>
 
@@ -202,6 +203,13 @@ async ambilDataMerk() {
     this.ambilDataKategori();
     this.ambilDataMerk();
     this.activeStatus = 'Tersedia';
+  },
+  watch: {
+    'form.status'(newStatus) {
+      if (newStatus !== 'Rusak') {
+        this.form.deskripsi = '';
+      }
+    }
   }
 };
 </script>

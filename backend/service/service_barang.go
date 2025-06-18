@@ -123,7 +123,7 @@ func SelesaiServiceBarang(w http.ResponseWriter, r *http.Request) {
 	}
 	defer db.Close()
 
-	// Ambil barang_id dulu
+	// Ambil barang_id dari service_barang
 	var barangID int
 	err = db.QueryRow("SELECT barang_id FROM service_barang WHERE id = ?", id).Scan(&barangID)
 	if err != nil {
@@ -131,19 +131,19 @@ func SelesaiServiceBarang(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Update service_barang
+	// Update status di service_barang
 	_, err = db.Exec("UPDATE service_barang SET status = 'Selesai' WHERE id = ?", id)
 	if err != nil {
 		http.Error(w, "Gagal update status service", http.StatusInternalServerError)
 		return
 	}
 
-	// Update barang
-	_, err = db.Exec("UPDATE barang SET status = 'Tersedia' WHERE id = ?", barangID)
+	// Update barang: ubah status & kosongkan deskripsi
+	_, err = db.Exec("UPDATE barang SET status = 'Tersedia', deskripsi = '' WHERE id = ?", barangID)
 	if err != nil {
 		http.Error(w, "Gagal update status barang", http.StatusInternalServerError)
 		return
 	}
 
-	json.NewEncoder(w).Encode(map[string]string{"message": "Status service & barang diperbarui"})
+	json.NewEncoder(w).Encode(map[string]string{"message": "Barang sudah selesai diservis dan tersedia kembali"})
 }

@@ -89,6 +89,9 @@ func main() {
 		}
 	}).Methods("GET", "POST")
 
+	// tambahan untuk router edit barang
+	router.HandleFunc("/barang/{id}", barang.EditBarang).Methods("PUT")
+
 	// CORS agar Vue bisa akses backend
 	c := cors.New(cors.Options{
 		AllowedOrigins:   []string{"http://localhost:5173"},

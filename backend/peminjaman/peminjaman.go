@@ -11,6 +11,7 @@ import (
 
 type Peminjaman struct {
 	ID                 int    `json:"id"`
+	BarangID           int    `json:"barang_id"`
 	NamaBarang         string `json:"nama_barang"`
 	Peminjam           string `json:"peminjam"`
 	TanggalPeminjam    string `json:"tanggal_peminjam"`
@@ -31,9 +32,16 @@ func GetAllPeminjaman(w http.ResponseWriter, r *http.Request) {
 	defer db.Close()
 
 	rows, err := db.Query(`
-	SELECT id, nama_barang, peminjam, tanggal_peminjam, tanggal_kembali, status_pengembalian
+	SELECT 
+		peminjaman.id, 
+		peminjaman.barang_id, 
+		barang.nama AS nama_barang, 
+		peminjaman.peminjam, 
+		peminjaman.tanggal_peminjam, 
+		peminjaman.tanggal_kembali, 
+		peminjaman.status_pengembalian
 	FROM peminjaman
-`)
+	JOIN barang ON peminjaman.barang_id = barang.id`)
 
 	if err != nil {
 		http.Error(w, "Query error: "+err.Error(), http.StatusInternalServerError)
@@ -44,7 +52,7 @@ func GetAllPeminjaman(w http.ResponseWriter, r *http.Request) {
 	var list []Peminjaman
 	for rows.Next() {
 		var p Peminjaman
-		if err := rows.Scan(&p.ID, &p.NamaBarang, &p.Peminjam, &p.TanggalPeminjam, &p.TanggalKembali, &p.StatusPengembalian); err != nil {
+		if err := rows.Scan(&p.ID, &p.BarangID, &p.NamaBarang, &p.Peminjam, &p.TanggalPeminjam, &p.TanggalKembali, &p.StatusPengembalian); err != nil {
 			http.Error(w, "Scan error: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -67,12 +75,18 @@ func TambahPeminjaman(w http.ResponseWriter, r *http.Request) {
 	defer db.Close()
 
 	_, err = db.Exec(`
-		INSERT INTO peminjaman (nama_barang, peminjam, tanggal_peminjam, tanggal_kembali, status_pengembalian)
+		INSERT INTO peminjaman (barang_id, peminjam, tanggal_peminjam, tanggal_kembali, status_pengembalian)
 		VALUES (?, ?, ?, ?, ?)`,
-		data.NamaBarang, data.Peminjam, data.TanggalPeminjam, data.TanggalKembali, data.StatusPengembalian)
+		data.BarangID, data.Peminjam, data.TanggalPeminjam, data.TanggalKembali, data.StatusPengembalian)
 
 	if err != nil {
 		http.Error(w, "Gagal tambah data: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	_, err = db.Exec("UPDATE barang SET status = 'Dipinjam' WHERE id = ?", data.BarangID)
+	if err != nil {
+		http.Error(w, "Gagal update status barang", http.StatusInternalServerError)
 		return
 	}
 
@@ -102,13 +116,22 @@ func EditPeminjaman(w http.ResponseWriter, r *http.Request) {
 
 	_, err = db.Exec(`
 		UPDATE peminjaman
-		SET nama_barang = ?, peminjam = ?, tanggal_peminjam = ?, tanggal_kembali = ?, status_pengembalian = ?
+		SET barang_id = ?, peminjam = ?, tanggal_peminjam = ?, tanggal_kembali = ?, status_pengembalian = ?
 		WHERE id = ?`,
-		data.NamaBarang, data.Peminjam, data.TanggalPeminjam, data.TanggalKembali, data.StatusPengembalian, id)
+		data.BarangID, data.Peminjam, data.TanggalPeminjam, data.TanggalKembali, data.StatusPengembalian, id)
 
 	if err != nil {
 		http.Error(w, "Gagal update: "+err.Error(), http.StatusInternalServerError)
 		return
+	}
+
+	//  Jika dikembalikan, update status barang ke "Tersedia"
+	if data.StatusPengembalian == "Dikembalikan" {
+		_, err = db.Exec("UPDATE barang SET status = 'Tersedia' WHERE id = ?", data.BarangID)
+		if err != nil {
+			http.Error(w, "Gagal update status barang", http.StatusInternalServerError)
+			return
+		}
 	}
 
 	w.WriteHeader(http.StatusOK)
@@ -132,9 +155,25 @@ func HapusPeminjaman(w http.ResponseWriter, r *http.Request) {
 	}
 	defer db.Close()
 
+	// Ambil barang_id dari peminjaman yang akan dihapus
+	var barangID int
+	err = db.QueryRow("SELECT barang_id FROM peminjaman WHERE id = ?", id).Scan(&barangID)
+	if err != nil {
+		http.Error(w, "Data peminjaman tidak ditemukan", http.StatusNotFound)
+		return
+	}
+
+	// Update status barang menjadi "Tersedia"
+	_, err = db.Exec("UPDATE barang SET status = 'Tersedia' WHERE id = ?", barangID)
+	if err != nil {
+		http.Error(w, "Gagal update status barang", http.StatusInternalServerError)
+		return
+	}
+
+	// Hapus data peminjaman
 	result, err := db.Exec("DELETE FROM peminjaman WHERE id = ?", id)
 	if err != nil {
-		http.Error(w, "Gagal hapus", http.StatusInternalServerError)
+		http.Error(w, "Gagal hapus data peminjaman", http.StatusInternalServerError)
 		return
 	}
 
@@ -146,6 +185,31 @@ func HapusPeminjaman(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{
-		"message": "Data peminjaman berhasil dihapus",
+		"message": "Data peminjaman berhasil dihapus dan status barang diperbarui",
 	})
+}
+
+func KembalikanBarang(w http.ResponseWriter, r *http.Request) {
+	idStr := r.URL.Query().Get("id")
+	id, _ := strconv.Atoi(idStr)
+
+	db, err := connectDB()
+	if err != nil {
+		http.Error(w, "DB error", http.StatusInternalServerError)
+		return
+	}
+	defer db.Close()
+
+	var barangID int
+	err = db.QueryRow("SELECT barang_id FROM peminjaman WHERE id = ?", id).Scan(&barangID)
+	if err != nil {
+		http.Error(w, "Gagal ambil barang_id", http.StatusInternalServerError)
+		return
+	}
+
+	// Ubah status peminjaman & barang
+	_, _ = db.Exec("UPDATE peminjaman SET status_pengembalian = 'Dikembalikan' WHERE id = ?", id)
+	_, _ = db.Exec("UPDATE barang SET status = 'Tersedia' WHERE id = ?", barangID)
+
+	json.NewEncoder(w).Encode(map[string]string{"message": "Barang berhasil dikembalikan"})
 }

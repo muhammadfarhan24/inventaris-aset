@@ -93,7 +93,7 @@ export default {
   try {
     const res = await fetch("http://localhost:3000/barang");
     const data = await res.json();
-    this.barangList = data;
+    this.barangList = data.filter(b => b.status === "Rusak");
   } catch (err) {
     console.error("Gagal mengambil data barang:", err);
   }

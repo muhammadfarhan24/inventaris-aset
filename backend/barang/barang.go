@@ -118,3 +118,44 @@ func generateKodeBarang(db *sql.DB) (string, error) {
 
 	return fmt.Sprintf("%s%04d", prefix, nextNum), nil
 }
+
+func EditBarang(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPut {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var b Barang
+	if err := json.NewDecoder(r.Body).Decode(&b); err != nil {
+		http.Error(w, "Invalid input: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	db, err := connectDB()
+	if err != nil {
+		http.Error(w, "DB error", http.StatusInternalServerError)
+		return
+	}
+	defer db.Close()
+
+	// Kosongkan deskripsi jika status bukan "Rusak"
+	if b.Status != "Rusak" {
+		b.Deskripsi = ""
+	}
+
+	_, err = db.Exec(`
+		UPDATE barang 
+		SET nama = ?, kategori_id = ?, merk_id = ?, status = ?, ruangan_id = ?, deskripsi = ?
+		WHERE id = ?`,
+		b.Nama, b.Kategori, b.Merk, b.Status, b.Ruangan, b.Deskripsi, b.ID)
+
+	if err != nil {
+		http.Error(w, "Update error: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{
+		"message": "Barang berhasil diperbarui",
+	})
+}

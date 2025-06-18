@@ -11,7 +11,12 @@
     <div v-if="showForm" class="form-card">
       <div class="form-group">
         <label>Nama Barang</label>
-        <input type="text" v-model="formData.nama_barang" placeholder="Masukkan nama barang" />
+        <select v-model.number="formData.barang_id">
+          <option value="" disabled>Pilih Barang</option>
+          <option v-for="barang in barangTersedia" :key="barang.id" :value="barang.id">
+            {{ barang.nama }}
+          </option>
+        </select>
       </div>
       <div class="form-group">
         <label>Nama Peminjam</label>
@@ -153,9 +158,10 @@ export default {
       searchQuery: '',
       daftarPeminjaman: [],
       riwayatPeminjaman: [],
+      barangTersedia: [],
       formData: {
         id: null,
-        nama_barang: '',
+        barang_id: '',
         peminjam: '',
         tanggal_peminjam: '',
         tanggal_kembali: '',
@@ -185,36 +191,70 @@ export default {
         console.error('Gagal mengambil data:', err);
       }
     },
-    tambahPeminjam() {
-      this.showForm = !this.showForm;
-    },
-    async submitPeminjaman() {
+    async fetchBarangTersedia() {
       try {
-        const method = this.isEdit ? 'PUT' : 'POST';
-        const url = this.isEdit
-          ? `http://localhost:3000/peminjaman?id=${this.formData.id}`
-          : 'http://localhost:3000/peminjaman';
-
-        const res = await fetch(url, {
-          method,
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(this.formData)
-        });
-
-        const result = await res.json();
-        alert(result.message);
-        this.showForm = false;
-        this.resetFormData();
-        this.fetchPeminjaman();
+        const res = await fetch('http://localhost:3000/barang');
+        const data = await res.json();
+        this.barangTersedia = data.filter(b => b.status === "Tersedia");
       } catch (err) {
-        alert('Gagal menyimpan data');
-        console.error(err);
+        console.error("Gagal mengambil data barang:", err);
       }
     },
+    async tambahPeminjam() {
+      this.showForm = !this.showForm;
+      if (this.showForm && !this.isEdit) {
+        await this.fetchBarangTersedia();
+      }
+    },
+  async submitPeminjaman() {
+  try {
+    console.log('Barang ID:', this.formData.barang_id, typeof this.formData.barang_id);
+
+    // Validasi manual
+    if (
+      this.formData.barang_id === null ||
+      this.formData.barang_id === '' ||
+      isNaN(this.formData.barang_id)
+    ) {
+      alert('Silakan pilih barang terlebih dahulu!');
+      return;
+    }
+
+    const method = this.isEdit ? 'PUT' : 'POST';
+    const url = this.isEdit
+      ? `http://localhost:3000/peminjaman?id=${this.formData.id}`
+      : 'http://localhost:3000/peminjaman';
+
+    const res = await fetch(url, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(this.formData)
+    });
+
+    if (!res.ok) throw new Error('Gagal menyimpan');
+
+    // Jangan pakai res.json() kalau POST karena backend tidak kirim JSON!
+    if (this.isEdit) {
+      const result = await res.json(); // PUT punya response JSON
+      alert(result.message || 'Data berhasil diperbarui');
+    } else {
+      alert('Data berhasil ditambahkan');
+    }
+
+    this.showForm = false;
+    this.resetFormData();
+    this.fetchPeminjaman();
+    this.fetchBarangTersedia(); // Refresh data barang setelah peminjaman
+
+  } catch (err) {
+    alert('Gagal menyimpan data');
+    console.error('Error submit:', err);
+  }
+},
     editPeminjaman(id) {
       const item = [...this.daftarPeminjaman, ...this.riwayatPeminjaman].find(p => p.id === id);
       if (item) {
-        this.formData = { ...item };
+        this.formData = { ...item, barang_id: item.barang_id.toString() };
         this.isEdit = true;
         this.showForm = true;
       }
@@ -222,7 +262,7 @@ export default {
     resetFormData() {
   this.formData = {
     id: null,
-    nama_barang: '',
+    barang_id: '',
     peminjam: '',
     tanggal_peminjam: '',
     tanggal_kembali: '',
@@ -248,6 +288,8 @@ export default {
   },
   mounted() {
     this.fetchPeminjaman();
+    this.fetchBarangTersedia();
+    console.log('Barang tersedia:', this.barangTersedia);
   }
 };
 </script>
